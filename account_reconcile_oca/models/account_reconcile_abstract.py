@@ -33,6 +33,9 @@ class AccountReconcileAbstract(models.AbstractModel):
         related="company_id.currency_id", string="Company Currency"
     )
 
+    def _get_reconcile_currency(self):
+        return self.currency_id or self.company_id._currency_id
+
     def _get_reconcile_line(
         self, line, kind, is_counterpart=False, max_amount=False, from_unreconcile=False
     ):
@@ -41,16 +44,22 @@ class AccountReconcileAbstract(models.AbstractModel):
         if is_counterpart:
             currency_amount = -line.amount_residual_currency or line.amount_residual
             amount = -line.amount_residual
-            currency = line.currency_id or self.company_id.currency_id
+            currency = line.currency_id or line.company_id.currency_id
             original_amount = net_amount = -line.amount_residual
             if max_amount:
-                currency_max_amount = self.company_id.currency_id._convert(
-                    max_amount, currency, self.company_id, date
+                real_currency_amount = currency._convert(
+                    currency_amount,
+                    self._get_reconcile_currency(),
+                    self.company_id,
+                    date,
                 )
                 if (
-                    -currency_amount > currency_max_amount > 0
-                    or -currency_amount < currency_max_amount < 0
+                    -real_currency_amount > max_amount > 0
+                    or -real_currency_amount < max_amount < 0
                 ):
+                    currency_max_amount = self._get_reconcile_currency()._convert(
+                        max_amount, currency, self.company_id, date
+                    )
                     amount = currency_max_amount
                     net_amount = -max_amount
                     currency_amount = -amount
