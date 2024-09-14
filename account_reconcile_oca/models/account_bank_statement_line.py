@@ -215,6 +215,7 @@ class AccountBankStatementLine(models.Model):
                     "other",
                     True,
                     max_amount=pending_amount,
+                    move=True,
                 )
                 new_data += lines
             self.reconcile_data_info = self._recompute_suspense_line(
@@ -540,7 +541,10 @@ class AccountBankStatementLine(models.Model):
         reconcile_auxiliary_id = 1
         for line in liquidity_lines:
             reconcile_auxiliary_id, lines = self._get_reconcile_line(
-                line, "liquidity", reconcile_auxiliary_id=reconcile_auxiliary_id
+                line,
+                "liquidity",
+                reconcile_auxiliary_id=reconcile_auxiliary_id,
+                move=True,
             )
             data += lines
         if not from_unreconcile:
@@ -589,6 +593,7 @@ class AccountBankStatementLine(models.Model):
                             reconciled_line.move_id.line_ids - reconciled_line,
                             "other",
                             from_unreconcile=False,
+                            move=True,
                         )
                         data += lines
                         continue
@@ -623,6 +628,7 @@ class AccountBankStatementLine(models.Model):
                                 ).mapped("debit_amount_currency")
                             ),
                         },
+                        move=True,
                     )
                     data += lines
             else:
@@ -846,7 +852,9 @@ class AccountBankStatementLine(models.Model):
             data = []
             for line in liquidity_lines:
                 reconcile_auxiliary_id, lines = record._get_reconcile_line(
-                    line, "liquidity"
+                    line,
+                    "liquidity",
+                    move=True,
                 )
                 data += lines
             reconcile_auxiliary_id = 1
@@ -861,7 +869,7 @@ class AccountBankStatementLine(models.Model):
                 amount = self.amount
                 for line in res.get("amls", []):
                     reconcile_auxiliary_id, line_datas = record._get_reconcile_line(
-                        line, "other", is_counterpart=True, max_amount=amount
+                        line, "other", is_counterpart=True, max_amount=amount, move=True
                     )
                     amount -= sum(line_data.get("amount") for line_data in line_datas)
                     data += line_datas
@@ -923,6 +931,7 @@ class AccountBankStatementLine(models.Model):
                     is_counterpart=True,
                     reconcile_auxiliary_id=reconcile_auxiliary_id,
                     max_amount=original_amount,
+                    move=True,
                 )
                 new_data += lines
                 new_data.append(
@@ -970,6 +979,7 @@ class AccountBankStatementLine(models.Model):
         max_amount=False,
         from_unreconcile=False,
         reconcile_auxiliary_id=False,
+        move=False,
     ):
         new_vals = super()._get_reconcile_line(
             line,
@@ -977,6 +987,7 @@ class AccountBankStatementLine(models.Model):
             is_counterpart=is_counterpart,
             max_amount=max_amount,
             from_unreconcile=from_unreconcile,
+            move=move,
         )
         rates = []
         for vals in new_vals:

@@ -152,7 +152,11 @@ class AccountAccountReconcile(models.Model):
         amount = 0.0
         for line_id in counterparts:
             lines = self._get_reconcile_line(
-                self.env["account.move.line"].browse(line_id), "other", True, amount
+                self.env["account.move.line"].browse(line_id),
+                "other",
+                True,
+                amount,
+                move=True,
             )
             new_data["data"] += lines
             amount += sum(line["amount"] for line in lines)
