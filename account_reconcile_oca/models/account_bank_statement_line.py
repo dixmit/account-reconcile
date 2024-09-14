@@ -576,15 +576,84 @@ class AccountBankStatementLine(models.Model):
                     self.manual_reference,
                 )
         for line in other_lines:
-            reconcile_auxiliary_id, lines = self._get_reconcile_line(
-                line, "other", from_unreconcile=from_unreconcile
-            )
-            data += lines
+            partial_lines = self._all_partials_lines(line) if from_unreconcile else []
+            if partial_lines:
+                for reconciled_line in (
+                    partial_lines.debit_move_id + partial_lines.credit_move_id - line
+                ):
+                    if (
+                        reconciled_line.move_id.journal_id
+                        == self.company_id.currency_exchange_journal_id
+                    ):
+                        reconcile_auxiliary_id, lines = self._get_reconcile_line(
+                            reconciled_line.move_id.line_ids - reconciled_line,
+                            "other",
+                            from_unreconcile=False,
+                        )
+                        data += lines
+                        continue
+                    partial = partial_lines.filtered(
+                        lambda r: r.debit_move_id == reconciled_line
+                        or r.credit_move_id == reconciled_line
+                    )
+                    partial_amount = sum(
+                        partial.filtered(
+                            lambda r: r.credit_move_id == reconciled_line
+                        ).mapped("amount")
+                    ) - sum(
+                        partial.filtered(
+                            lambda r: r.debit_move_id == reconciled_line
+                        ).mapped("amount")
+                    )
+                    reconcile_auxiliary_id, lines = self._get_reconcile_line(
+                        reconciled_line,
+                        "other",
+                        from_unreconcile={
+                            "amount": partial_amount,
+                            "credit": partial_amount > 0 and partial_amount,
+                            "debit": partial_amount < 0 and -partial_amount,
+                            "currency_amount": sum(
+                                partial.filtered(
+                                    lambda r: r.credit_move_id == reconciled_line
+                                ).mapped("credit_amount_currency")
+                            )
+                            - sum(
+                                partial.filtered(
+                                    lambda r: r.debit_move_id == reconciled_line
+                                ).mapped("debit_amount_currency")
+                            ),
+                        },
+                    )
+                    data += lines
+            else:
+                reconcile_auxiliary_id, lines = self._get_reconcile_line(
+                    line, "other", from_unreconcile=False
+                )
+                data += lines
+
         return self._recompute_suspense_line(
             data,
             reconcile_auxiliary_id,
             self.manual_reference,
         )
+
+    def _all_partials_lines(self, lines):
+        reconciliation_lines = lines.filtered(
+            lambda x: x.account_id.reconcile
+            or x.account_id.account_type in ("asset_cash", "liability_credit_card")
+        )
+        current_lines = reconciliation_lines
+        current_partials = self.env["account.partial.reconcile"]
+        partials = self.env["account.partial.reconcile"]
+        while current_lines:
+            current_partials = (
+                current_lines.matched_debit_ids + current_lines.matched_credit_ids
+            ) - current_partials
+            current_lines = (
+                current_partials.debit_move_id + current_partials.credit_move_id
+            ) - current_lines
+            partials += current_partials
+        return partials
 
     def clean_reconcile(self):
         self.reconcile_data_info = self._default_reconcile_data()
