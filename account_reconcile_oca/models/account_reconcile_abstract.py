@@ -91,11 +91,11 @@ class AccountReconcileAbstract(models.AbstractModel):
         if from_unreconcile:
             vals.update(
                 {
-                    "id": False,
-                    "counterpart_line_ids": (
-                        line.matched_debit_ids.mapped("debit_move_id")
-                        | line.matched_credit_ids.mapped("credit_move_id")
-                    ).ids,
+                    "credit": vals["debit"] and from_unreconcile["debit"],
+                    "debit": vals["credit"] and from_unreconcile["credit"],
+                    "amount": from_unreconcile["amount"],
+                    "net_amount": from_unreconcile["amount"],
+                    "currency_amount": from_unreconcile["currency_amount"],
                 }
             )
         if not float_is_zero(
