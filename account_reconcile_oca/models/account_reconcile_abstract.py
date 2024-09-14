@@ -37,7 +37,13 @@ class AccountReconcileAbstract(models.AbstractModel):
         return self.currency_id or self.company_id._currency_id
 
     def _get_reconcile_line(
-        self, line, kind, is_counterpart=False, max_amount=False, from_unreconcile=False
+        self,
+        line,
+        kind,
+        is_counterpart=False,
+        max_amount=False,
+        from_unreconcile=False,
+        move=False,
     ):
         date = self.date if "date" in self._fields else line.date
         original_amount = amount = net_amount = line.debit - line.credit
@@ -72,6 +78,8 @@ class AccountReconcileAbstract(models.AbstractModel):
         else:
             currency_amount = line.amount_currency
         vals = {
+            "move_id": move and line.move_id.id,
+            "move": move and line.move_id.name,
             "reference": "account.move.line;%s" % line.id,
             "id": line.id,
             "account_id": line.account_id.name_get()[0],
