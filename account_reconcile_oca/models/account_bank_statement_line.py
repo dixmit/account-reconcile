@@ -229,6 +229,7 @@ class AccountBankStatementLine(models.Model):
     def _recompute_suspense_line(self, data, reconcile_auxiliary_id, manual_reference):
         can_reconcile = True
         total_amount = 0
+        currency_amount = 0
         new_data = []
         suspense_line = False
         counterparts = []
@@ -243,15 +244,30 @@ class AccountBankStatementLine(models.Model):
             if line["kind"] != "suspense":
                 new_data.append(line)
                 total_amount += line["amount"]
+                if line.get("currency_amount"):
+                    currency_amount += (
+                        self.env["res.currency"]
+                        .browse(line["line_currency_id"])
+                        ._convert(
+                            line["currency_amount"],
+                            self._get_reconcile_currency(),
+                            self.company_id,
+                            self.date,
+                        )
+                    )
+                else:
+                    currency_amount += self.company_id.currency_id._convert(
+                        line["amount"],
+                        self._get_reconcile_currency(),
+                        self.company_id,
+                        self.date,
+                    )
             else:
                 suspense_line = line
         if not float_is_zero(
             total_amount, precision_digits=self.company_id.currency_id.decimal_places
         ):
             can_reconcile = False
-            currency_amount = self.company_id.currency_id._convert(
-                total_amount, self._get_reconcile_currency(), self.company_id, self.date
-            )
             if suspense_line:
                 suspense_line.update(
                     {
