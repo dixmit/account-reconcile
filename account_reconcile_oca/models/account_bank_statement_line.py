@@ -425,6 +425,10 @@ class AccountBankStatementLine(models.Model):
         for line in data:
             if line["reference"] == self.manual_reference:
                 if self._check_line_changed(line):
+                    if line["line_currency_id"] == self.company_id.currency_id.id:
+                        currency_amount = self.manual_amount
+                    else:
+                        currency_amount = self.manual_amount_in_currency
                     line.update(
                         {
                             "name": self.manual_name,
@@ -442,7 +446,7 @@ class AccountBankStatementLine(models.Model):
                             if self.manual_amount > 0
                             else 0.0,
                             "analytic_distribution": self.analytic_distribution,
-                            "currency_amount": self.manual_amount_in_currency,
+                            "currency_amount": currency_amount,
                             "kind": line["kind"]
                             if line["kind"] != "suspense"
                             else "other",
