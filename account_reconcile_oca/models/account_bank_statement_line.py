@@ -1048,7 +1048,7 @@ class AccountBankStatementLine(models.Model):
                 self.company_id,
                 self.date,
             )
-        return to_amount - amount
+        return self.company_id.currency_id.round(to_amount - amount)
 
     def _compute_exchange_rate(
         self,
