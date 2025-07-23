@@ -48,6 +48,7 @@
                 />
                 <field name="name" />
                 <field name="ref" />
+                <field name="payment_order_id" />
                 <field name="date" />
                 <field name="account_id" />
                 <field name="account_root_id" />

@@ -13,6 +13,7 @@
     "depends": [
         "account_statement_base",
         "account_reconcile_model_oca",
+        "account_payment_order",
         "base_sparse_field",
     ],
     "data": [

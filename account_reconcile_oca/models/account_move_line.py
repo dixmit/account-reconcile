@@ -1,12 +1,14 @@
 # Copyright 2023 Dixmit
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from odoo import _, models
+from odoo import _, fields, models
 from odoo.exceptions import ValidationError
 
 
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
+
+    payment_order_id = fields.Many2one(related="move_id.payment_order_id")
 
     def action_reconcile_manually(self):
         if not self:
